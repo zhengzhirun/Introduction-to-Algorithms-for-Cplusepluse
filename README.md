@@ -1,4 +1,6 @@
 # Introduction-to-Algorithms
+## maxSubset: c++实现最大和子序列和问题
+
 参考文献:
 
 <<算法导论>> 第三版 
