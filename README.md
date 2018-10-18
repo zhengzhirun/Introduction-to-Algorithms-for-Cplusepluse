@@ -1,6 +1,7 @@
 # Introduction-to-Algorithms
 ## maxSubset: c++实现最大和子序列和问题
 包含四种算法分别为: 
+
 *最大相连子序列和立方级(O(n^3))算法
 
 参考文献:
