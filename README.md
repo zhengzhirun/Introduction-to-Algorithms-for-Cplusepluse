@@ -26,3 +26,7 @@
              --merge_sort/mergeSort.h: 归并排序
              --quick_sort/quickSort.h: 快速排序
              --radix_sort/radixSort.h: 基数排序
+### stack_algorithm 栈算法
+             --stack_algorithm/stack.h: 栈
+### subset_algorithm 子序列算法
+             --merge_subset_sum/mergeSubsetSum.h
