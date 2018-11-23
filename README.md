@@ -3,6 +3,10 @@
 基于C++11标准,并给出Makefile.
 ### Binary-search 二分搜索算法
     --Binary_search/binarySearch.h: 二分搜索算法
+### hash_table 散列表
+    --chain_hash_table/chain_hash_table.h: 链接法实现散列表
+    --open_addressing_hash_table/open_addressing_hash_table.h: 开放寻址法实现散列表
+    --perfect_hashing/perfect_hashing.h: 完全散列表
 ### interesting_algorithm 感兴趣的算法
     --gcd_algorithm/gcd.h: 欧几里得算法求解最大公因数
     --pow_algorithm/recursionPow.h: 递归求幂运算
