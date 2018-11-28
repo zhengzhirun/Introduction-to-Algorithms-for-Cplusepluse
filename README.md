@@ -1,6 +1,9 @@
 # Introduction-to-Algorithms-for-Cplusepluse
 算法导论(第三版)----C++实现.
-基于C++11标准,并给出Makefile.
+
+基于C++11标准(全部实现为模板故都放在.h文件中),并给出Makefile文件(基于ubuntu(linux)).
+
+代码实现中所有的指针均优先采用C++11新标准建议的智能指针.
 ### Binary-search 二分搜索算法
     --Binary_search/binarySearch.h: 二分搜索算法
 ### hash_table 散列表
@@ -38,5 +41,8 @@
     --online_subset_sum/onlineSubsetSum.h: 寻找最大相连子序列和的在线算法
     --original_subset_sum/originalSubsetSum.h: 寻找最大相连子序列和的暴力算法
 ### tree_algorithm 树算法
+    --Binary_search_tree/binary_search_tree.h: 二叉搜索树
     --binarytree/binarytree.h: 二叉树
     --binarytreeNode/binarytreeNode.h: 二叉树的节点数据类型
+    --RedBlackTree/RedBlackTree.h: 红黑树
+    --RedBlackTreeNode/RedBlackTreeNode.h: 红黑树的节点数据类型
