@@ -61,9 +61,20 @@ bool setUp()
         min = normalTree.successor(min);
     }
     cout << endl;
-    normalTree.remove(nodes[8]);
-    //for (std::size_t i = 0; i != 11; ++i)
-    //    cout << nodes[i]->to_string() << endl;
+    cout << "**********************红黑树删除测试**********************************\n";
+    // 删除操作
+    for (int i = 0; i != 11; ++i){
+        min = normalTree.minimum(normalTree.root);
+        cout << "删除" << min->key << "后，排序:\n";
+        normalTree.remove(min);
+        min = normalTree.minimum(normalTree.root);
+        for (int j = 0; j != (11-i-1); ++j){
+            cout << min->key << " ";
+            min = normalTree.successor(min);
+        }
+        cout << endl;
+        
+    }
 }
 int main()
 {

@@ -11,8 +11,26 @@
 #include "../RedBlackTreeNode/RedBlackTreeNode.h"
 // RedBlackTree: 红黑树 算法导论第13章
 /*
+ * 由于没有采用书中所述的带哨兵的红黑树,所以边界条件的处理比较复杂.
  * 红黑树是许多平衡搜索树中的一种,能够保证动态操作在最坏的情况下的时间复杂度为O(logN).
-*/
+ * 红黑树的性质: 
+ *      --1.每个节点或是红色的,或是黑色的.
+ *      --2.根节点是黑色的.
+ *      --3.每个叶节点(NULL)是黑色的.(特指为空的叶子节点)
+ *      --4.如果一个节点是红色的,则它的两个子节点都是黑色的.
+ *      --5.对每个节点,从该节点到其所有后代叶节点的简单路径上,均包含相同数目的黑色节点.
+ *          (也就是黑高相同)
+ * 与普通二叉搜索树不同的是,红黑树在每个节点上增加了一个存储位来表示节点的颜色(只能是BLACK
+ *      和RED中的一种).通过对各个节点上颜色进行约束,可以保证任何一条从根到叶子节点的简单路径
+ *      上不会比其它路径长2倍(这就保证了平衡).
+ * 
+ * 引理13.1 一棵有n个内部节点的红黑树的高度至多为2lg(n+1).
+ *
+ * 由该引理就可以知道,动态集合操作SEARCH, MINIMUM, MAXIMUM, SUCCESSOR和PREDECESSOR可在红黑树上
+ * 在O(lgn)时间内执行.
+ *
+ * INSERT和DELETE操作在红黑树上的在O(lgn)时间内执行.
+ */
 template<typename NodeType>
 class RedBlackTree
 {
@@ -142,7 +160,7 @@ void RedBlackTree<NodeType>::right_rotate(std::shared_ptr<NodeType> node,
  *                      
  * 算法性能: 算法时间复杂度为O(logN).所有的旋转操作都不会超过两次.
  *  0:红色;  1:黑色;
- *                  |                                                        |
+ *                  |                                                        |min = normalTree.minimum(normalTree.root);
  *                11<1>                                                    11<1>
  *               /      \                                                 /     \
  *             2<0>      14<1>                                          2<0>    14<1><uncle>
@@ -282,32 +300,83 @@ void RedBlackTree<NodeType>::insert(std::shared_ptr<NodeType> node)
 /*
  * \parameter node: 待删除的节点;
  * \return void.
- *
+ * 
  * 算法性能: 算法的时间复杂度为O(logN).
+ *
+ * 修正过程分为四种情况:
+ * 情况1: x的右兄弟w是红色的,说明x的父节点一定是黑色的.
+ *      --所做的操作是:交换w和其父节点的颜色,即把w换为黑色,其父节点换为红色;
+ *      --然后对父节点左旋转,w重新指向x的右兄弟(该节点原本是w的左孩子,所以一定为黑色).
+ *      --这时情况1就转变为情况2.
+ *          |                                                       |
+ *         B<1>                                                    D<1>
+ *        /    \                  情况1                           /    \
+ *   x:A<1>    w:D<0>      ------------------->                B<0>    E<1>
+ *            /      \                                         /   \
+ *         C<1>      E<1>                                 x:A<1>   new w:C<1>
+ * 情况2: x的兄弟节点w是黑色的,而且w的孩子都为黑色.
+ *      --所做的操作是: 将w换为红色,x指向其父节点
+ *          |                                                       | 
+ *         B<1>                                                 new x:B<1>
+ *        /    \                  情况2                         /         \
+ *   x:A<1>    w:D<1>      ------------------->              A<1>         D<0>
+ *             /     \                                                    /   \
+ *            C<1>   E<1>                                              C<1>   E<1>
+ * 情况3: x的兄弟节点w是黑色的,w的左孩子是红色的,w的右孩子是黑色的.
+ *      --所做的操作是:交换w和其左孩子的颜色,即把w换为红色,其左孩子换为黑色;
+ *      --然后对w右旋转,w重新指向x的右兄弟;
+ *          |                                                       |  
+ *         B<0>                                                    B<1>  
+ *        /    \                  情况3                            /   \
+ *    x:A<1>   w:D<1>      ------------------->               x:A<1>   new w: C<1>
+ *             /     \                                                    \
+ *           C<0>    E<1>                                                 D<0>
+ *                                                                          \
+ *                                                                          E<1>
+ * 情况4: x的兄弟节点w是黑色的,且w的右孩子是红色的.
+ *      --所做的操作是:w与x的父节点交换颜色;
+ *      --并把w的右孩子设为黑色,对x的父节点左旋转,x直接指向根节点,循环结束.
+ *          |                                                       |
+ *        B<0>                                                     D<0>
+ *       /    \                   情况4                           /    \
+ *  x:A<1>    w:D<1>       ------------------->                B<1>    E<1>
+ *            /     \                                         /    \
+ *           C<0>   E<0>                                     A<1>  C<0>  注:new x = root. 
 */
 template<typename NodeType>
 void RedBlackTree<NodeType>::delete_fixup(std::shared_ptr<NodeType> node)
 {
     std::shared_ptr<NodeType> w = std::shared_ptr<NodeType>();
-    while (node != root && node->color == BLACK){
+    while (node != root && node && node->color == BLACK){
         if (node->is_left_child()){     // node是其父亲的左孩子
             auto node_p = node->parent.lock();  // 提取node的父亲节点
             w = node_p->rchild;
-            if (w->color == RED){
+            // 情况1: x的兄弟节点w是红色的(当w不存在的时候默认为黑色)
+            if (w && w->color == RED){
                 w->color = BLACK;
                 node_p->color = RED;
                 left_rotate(node_p, root);
                 w = node_p->rchild;
             }
-            if (w->lchild->color == BLACK && w->rchild->color == BLACK){
+            // 情况2: x的兄弟节点w是黑色的,而且w的两个子节点都是黑色的   
+            // 边界处理的条件: w存在且为黑色
+            if (w && w->color == BLACK){
                 w->color = RED;
                 node = node->parent.lock();
             }
-            else if (w->rchild->color == BLACK){
+            // 情况3: x的兄弟节点w是黑色的,w的左孩子是红色的,w的右孩子是黑色的
+            // 边界条件的处理: w存在且为黑色 && w的左孩子存在且为红色 && (w的右孩子不存在 || w的有孩子存在
+            // 且为黑色) 
+            else if ((w && w->color == BLACK) && (w->lchild && w->lchild->color == RED) &&
+                    (!w->rchild || (w->rchild && w->rchild->color == BLACK))){
+                // 转为情况4
                 w->lchild->color = BLACK;
                 w->color = RED;
                 right_rotate(w, root);
-
+                node_p = node->parent.lock();
+                w = node_p->rchild;
+                /*
+                // 情况4的处理过程
                 node_p = node->parent.lock();
                 w = node_p->rchild;
                 w->color = node_p->color;
@@ -315,8 +384,11 @@ void RedBlackTree<NodeType>::delete_fixup(std::shared_ptr<NodeType> node)
                 w->rchild->color = BLACK;
                 left_rotate(node_p, root);
                 node = root;
+                */
             }
-            else{
+            // 情况4: x的兄弟节点w是黑色的,且w的右孩子是红色的
+            // 边界条件的处理: 1. w存在且为黑色 && w的右孩子存在且为红色
+            else if ((w && w->color == BLACK) && (w->rchild && w->rchild->color == RED)){
                 node_p = node->parent.lock();
                 w->color = node_p->color;
                 node_p->color = BLACK;
@@ -328,20 +400,30 @@ void RedBlackTree<NodeType>::delete_fixup(std::shared_ptr<NodeType> node)
         else{
             auto node_p = node->parent.lock();
             w = node_p->lchild;
-            if (w->color == RED){
+            // 情况1:x的兄弟节点w是红色的(当x不存在的时候默认为黑色)
+            if (w && w->color == RED){
                 w->color = BLACK;
                 node_p->color = RED;
                 right_rotate(node_p, root);
             }
-            if (w->rchild->color == BLACK && w->lchild->color == BLACK){
+            // 情况2:x的兄弟节点是黑色的,并且w的两个子节点都是黑色的
+            if (w && w->color == BLACK){
                 w->color = RED;
-                node = node_p;
+                node = node->parent.lock();
             }
-            else if (w->lchild->color == BLACK){
+            // 情况3:x的兄弟节点w是黑色的,w的左孩子是黑色的,w的右孩子是红色的
+            // 边界条件的处理: w存在且为黑色 && w的右孩子存在且为红色 && (w的左孩子不存在 ||
+            // w的左孩子存在且为红色且为黑色)
+            else if ((w && w->color == BLACK) && (w->rchild && w->rchild->color == RED) &&
+                    (!w->lchild || (w->lchild && w->lchild->color == BLACK))){ 
+                // 转化为情况4
                 w->rchild->color = BLACK;
                 w->color = RED;
                 left_rotate(w, root);
-                
+                node_p = node->parent.lock();
+                w = node_p->lchild;
+                /*
+                // 情况4的处理
                 node_p = node->parent.lock();
                 w = node_p->lchild;
                 w->color = node_p->color;
@@ -349,8 +431,11 @@ void RedBlackTree<NodeType>::delete_fixup(std::shared_ptr<NodeType> node)
                 w->lchild->color = BLACK;
                 right_rotate(node_p, root);
                 node = root;
+                */
             }
-            else{
+            // 情况4: x的兄弟节点w是黑色的,且w的左孩子是红色的
+            // 边界条件的处理: w存在且为黑色 && w的左孩子存在且为红色
+            else if ((w && w->color == BLACK) && (w->lchild && w->lchild->color == RED)){
                 node_p = node->parent.lock();
                 w->color = node_p->color;
                 node_p->color = BLACK;
@@ -360,7 +445,8 @@ void RedBlackTree<NodeType>::delete_fixup(std::shared_ptr<NodeType> node)
             }
         }
     }
-    node->color = BLACK;
+    if (node)
+        node->color = BLACK;
 }
 // transplant: 红黑树的剪切操作
 /*
@@ -390,7 +476,15 @@ void RedBlackTree<NodeType>::transplant(std::shared_ptr<NodeType> u, std::shared
 /*
  * \parameter node: 待删除的节点;
  * \return void.
+ * 
  * 算法性能: 时间复杂度为O(logN).
+ *
+ * 算法的基本思想: 和二叉搜索树的删除操作一样,同样分为:少于两个子节点,有两个子节点的情况.
+ *      --1.node的子节点数少于两个:(令y指向node的位置)如果节点y颜色为红色直接删除,因为不会破坏红黑性质;
+ *          若y为黑色,调用颜色修复函数,并令其子树x代替node的位置,并把颜色也改变成node的颜色.
+ *      --2.node的子节点数有两个: 找到node的后继y,用y代替node的位置,并把y的颜色换成node的颜色,这样不会
+ *          破坏红黑性质.但是如果y在之前的位置是黑色的,现在由于转移走了,y的右子树x代替了y的位置,此时破坏了
+ *          这个支树的红黑性质,少了一个黑色节点,需要调用颜色修复函数.
 */
 template<typename NodeType>
 void RedBlackTree<NodeType>::remove(std::shared_ptr<NodeType> node)
@@ -410,8 +504,23 @@ void RedBlackTree<NodeType>::remove(std::shared_ptr<NodeType> node)
     // 删除过程
     std::shared_ptr<NodeType> x = std::shared_ptr<NodeType>();
     auto y = node;
-    COLOR y_color = RED;
-    if (node->rchild && !node->lchild){     // 右子树存在,左子树不存在
+    COLOR y_color = RED;    // 记录y转移前节点的颜色
+    
+    // node是一个叶子节点(直接删除)
+    if ((!node->lchild) && (!node->rchild)){
+        auto parent_ptr = node->parent.lock();  // 获取父节点
+        // 父节点非空
+        if (parent_ptr){
+            if (node->is_left_child())
+                parent_ptr->lchild = std::shared_ptr<NodeType>();
+            if (node->is_right_child())
+                parent_ptr->rchild = std::shared_ptr<NodeType>();
+        }
+        // 父节点为空(说明这个节点为根节点 且这棵树只有这一个节点)
+        else
+            root = std::shared_ptr<NodeType>();
+    }
+    else if (node->rchild && !node->lchild){     // 右子树存在,左子树不存在
         x = node->rchild;    
         transplant(node, node->rchild);
     }
@@ -419,22 +528,26 @@ void RedBlackTree<NodeType>::remove(std::shared_ptr<NodeType> node)
         x = node->lchild;
         transplant(node, node->lchild);
     }
+    // 节点node的左子树和右子树都存在
     else{
         y = successor(node);    // 找到node节点的后继节点
-        y_color = y->color;     // 记录y转移前的颜色
         x = y->rchild;
-        if (y->parent.lock() == node)   // y是node的子节点
-            x->parent = y;
-        else{
-            transplant(y, y->rchild);
+        y_color = y->color;     // 记录y转移前的颜色
+        // node的后继节点y不是node的右子节点(但一定存在于右子树中),那么转换为右子节点的情形
+        if (y != node->rchild){
+            transplant(y, y->rchild);   // 将后继的右子剪切到后继的位置
             y->rchild = node->rchild;
-            y->rchild->parent = y;
+            node->rchild->parent = y;
+            node->rchild = y;
         }
+        // node的后继就是node的右子节点
         transplant(node, y);
         y->lchild = node->lchild;
-        y->lchild->parent = y;
-        y->color = node->color;
+        node->lchild->parent = y;
+        y->color = node->color;     // 将y节点的颜色换成node的颜色
     }
+    // 转移前节点y的颜色为黑色的话那么就必须要调用颜色修复函数(维持红黑树的性质)
+    
     if (y_color == BLACK)
         delete_fixup(x);
 }
